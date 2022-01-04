@@ -16,7 +16,7 @@ export class Application {
     @Column({
         length: 255,
     })
-    public url: string; // url of the application
+    public host: string; // url of the application
 
     @Column({
         length: 255,
