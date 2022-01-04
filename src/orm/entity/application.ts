@@ -46,6 +46,7 @@ export class Application {
         type: 'int',
         unsigned: true,
     })
+    @Index()
     public user: number; // the person who created this application
 
     @Column({
