@@ -21,10 +21,10 @@ export class UserController extends ServerController {
         this.router.get('/logout', this.getLogout);
 
         this.router.post('/login', this.postLogin);
-        this.router.post('/signup', this.postSignup);
+        this.router.post('/register', this.postRegister);
     }
 
-    public async postSignup(request: express.Request, response: express.Response) {
+    public async postRegister(request: express.Request, response: express.Response) {
         // make sure we are ready to process this as our own api server request that has some additions to it
         let serverRequest = request as ServerRequest;
 

@@ -46,6 +46,12 @@ export class Application {
         type: 'int',
         unsigned: true,
     })
+    public user: number; // the person who created this application
+
+    @Column({
+        type: 'int',
+        unsigned: true,
+    })
     public created_at: number; // when the user was created
 
     @Column({
