@@ -51,3 +51,5 @@ export class ApplicationUserMetadata {
     })
     public deleted_at: number; // when the user was last updated
 }
+
+export default ApplicationUserMetadata;

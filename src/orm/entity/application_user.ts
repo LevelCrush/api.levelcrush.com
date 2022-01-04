@@ -39,3 +39,5 @@ export class ApplicationUser {
     })
     public deleted_at: number; // when the user was last updated
 }
+
+export default ApplicationUser;

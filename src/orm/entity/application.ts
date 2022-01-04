@@ -61,3 +61,4 @@ export class Application {
     })
     public updated_at: number; // when the user was last updated
 }
+export default Application;

@@ -16,7 +16,46 @@ export class ApplicationController extends ServerController {
     public constructor() {
         super('/application');
 
-        // create routes
+        // to use the application routes we must be logged in
+        this.router.use(async (req, res, next) => {
+            let session = req.session as UserSession;
+            let serverResponse: ServerResponse = {
+                success: true,
+                response: {},
+                errors: [],
+            };
+
+            let userFound = false;
+            if (session.user !== undefined) {
+                // make sure we are ready to process this as our own api server request that has some additions to it
+                let serverRequest = req as ServerRequest;
+
+                let sessionUser = await serverRequest.globals.database
+                    .raw()
+                    .getRepository(User)
+                    .findOne({
+                        where: {
+                            token: session.user.toString(),
+                            deleted_at: 0,
+                            banned_at: 0,
+                        },
+                    });
+                userFound = sessionUser !== undefined;
+            }
+
+            if (userFound) {
+                next(); // we have validated our user, move on to process the route
+            } else {
+                // we are not valid, send a json response back indicating failure
+                serverResponse.success = false;
+                serverResponse.response = {
+                    message: 'Please login',
+                    user: null,
+                    valid: false,
+                };
+                res.json(serverResponse);
+            }
+        });
 
         // read routes GET METHOD
         this.router.get('/list', this.getList);
@@ -29,6 +68,9 @@ export class ApplicationController extends ServerController {
     public async getList(request: express.Request, response: express.Response) {
         // make sure we are ready to process this as our own api server request that has some additions to it
         let serverRequest = request as ServerRequest;
+
+        let database = serverRequest.globals.database.raw();
+        //database.getRepository(Applica);
     }
 
     public async postRegister(request: express.Request, response: express.Response) {}
