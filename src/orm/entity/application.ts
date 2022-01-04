@@ -24,6 +24,11 @@ export class Application {
     public name: string; // name of the application
 
     @Column({
+        length: 255,
+    })
+    public session_key: string; // key to the session variables
+
+    @Column({
         type: 'text',
     })
     public description: string; // description of the string

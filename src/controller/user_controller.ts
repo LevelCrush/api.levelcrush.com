@@ -18,7 +18,6 @@ export class UserController extends ServerController {
 
         // create routes
         this.router.get('/session', this.getSession);
-
         this.router.get('/logout', this.getLogout);
 
         this.router.post('/login', this.postLogin);
