@@ -196,6 +196,8 @@ export class UserController extends ServerController {
                 .findOne({
                     where: {
                         token: session.user.toString(),
+                        deleted_at: 0,
+                        banned_at: 0,
                     },
                 });
             userFound = sessionUser !== undefined;
@@ -258,6 +260,8 @@ export class UserController extends ServerController {
                 user = await repository.findOne({
                     where: {
                         email: loginEmail,
+                        deleted_at: 0,
+                        banned_at: 0,
                     },
                 });
 
@@ -309,7 +313,7 @@ export class UserController extends ServerController {
                 });
             });
         } else {
-            bodyResponse['user'] = 'Invalid Credentials';
+            bodyResponse['user'] = 'User not found';
             bodyResponse['loginMethod'] = loginMethod;
             request.session.destroy((err) => {
                 response.json({
