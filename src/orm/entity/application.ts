@@ -27,11 +27,13 @@ export class Application {
 
     @Column({
         length: 255,
+        unique: true,
     })
     public name: string; // name of the application
 
     @Column({
         length: 255,
+        unique: true,
     })
     public session_key: string; // key to the session variables
 
