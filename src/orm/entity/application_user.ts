@@ -1,5 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, OneToOne } from 'typeorm';
 import * as moment from 'moment';
+import Application from './application';
+import User from './user';
 
 @Entity()
 @Index(['application', 'user'], { unique: true })
@@ -19,7 +21,7 @@ export class ApplicationUser {
         unsigned: true,
     })
     @Index()
-    public user: number; // the row id of the user
+    public user: number; // the row id of the user  USING the application
 
     @Column({
         type: 'int',

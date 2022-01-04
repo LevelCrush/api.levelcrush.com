@@ -1,5 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne } from 'typeorm';
+import User from './user';
 import * as moment from 'moment';
+import { type } from 'os';
 
 @Entity()
 export class Application {

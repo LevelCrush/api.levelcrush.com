@@ -70,6 +70,8 @@ export class ApplicationController extends ServerController {
         let serverRequest = request as ServerRequest;
 
         let database = serverRequest.globals.database.raw();
+        let repository = database.getRepository(Application);
+
         //database.getRepository(Applica);
     }
 

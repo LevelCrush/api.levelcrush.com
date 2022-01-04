@@ -2,8 +2,8 @@ import { Entity, Column, PrimaryGeneratedColumn, Index, Binary } from 'typeorm';
 import * as moment from 'moment';
 
 @Entity()
-@Index(['application', 'user'])
-@Index(['application', 'user', 'key'], { unique: true })
+@Index(['application', 'application_user'])
+@Index(['application', 'application_user', 'key'], { unique: true })
 export class ApplicationUserMetadata {
     @PrimaryGeneratedColumn()
     public id: number; // row id
@@ -20,7 +20,7 @@ export class ApplicationUserMetadata {
         unsigned: true,
     })
     @Index()
-    public user: number; // the row id of the user
+    public application_user: number; // the row id of the matching user in `application_users`
 
     @Column({
         length: 255,
