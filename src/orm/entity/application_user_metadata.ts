@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index, Binary } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 import * as moment from 'moment';
 
 @Entity()
