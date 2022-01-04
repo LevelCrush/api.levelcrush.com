@@ -14,6 +14,13 @@ export class Application {
     public token: string; // application token
 
     @Column({
+        type: 'binary',
+        length: 32,
+        unique: true,
+    })
+    public token_secret: string; // application token + secret
+
+    @Column({
         length: 255,
     })
     public host: string; // url of the application
