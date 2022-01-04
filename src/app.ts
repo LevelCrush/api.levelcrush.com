@@ -13,11 +13,8 @@ async function main(): Promise<void> {
     console.log('Starting Server');
     let server = new Server(database);
 
-    console.log('Loading Routes');
-
     console.log('Loading Routes + Controllers');
     let controllers: ServerController[] = [new UserController(), new ApplicationController()];
-
     controllers.forEach((controller, index) => {
         server.router(controller.route, controller.router);
     });
