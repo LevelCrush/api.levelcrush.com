@@ -1,16 +1,11 @@
 import User from '../orm/entity/user';
 import { ServerController, ServerResponse, ServerResponseError } from '../server/server_controller';
 import { Repository } from 'typeorm';
-import { Server, ServerRequest } from '../server/server';
+import { Server, ServerRequest, ServerSession } from '../server/server';
 import * as moment from 'moment';
 import * as express from 'express';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-
-export interface UserSession {
-    user?: string;
-    applications?: { [appName: string]: { [key: string]: unknown } };
-}
 
 export class UserController extends ServerController {
     public constructor() {
@@ -177,7 +172,7 @@ export class UserController extends ServerController {
      * @param response
      */
     public async getSession(request: express.Request, response: express.Response) {
-        let session = request.session as UserSession;
+        let session = request.session as ServerSession;
         let serverResponse: ServerResponse = {
             success: true,
             response: {},
@@ -282,7 +277,7 @@ export class UserController extends ServerController {
             await repository.save(user);
 
             // in our session store our users
-            (request.session as UserSession).user = user.token.toString();
+            (request.session as ServerSession).user = user.token.toString();
 
             // provide a direct mapping to the user in the session
             let hub: Partial<User> = {
@@ -298,7 +293,7 @@ export class UserController extends ServerController {
             };
 
             // since we are logging in we can safely recreate the applications literal
-            (request.session as UserSession).applications = {
+            (request.session as ServerSession).applications = {
                 hub: hub,
             };
 

@@ -3,10 +3,9 @@ import Application from '../orm/entity/application';
 import ApplicationUser from '../orm/entity/application_user';
 import ApplicationUserMetadata from '../orm/entity/application_user_metadata';
 
-import { UserSession } from './user_controller';
 import { ServerController, ServerResponse, ServerResponseError } from '../server/server_controller';
+import { Server, ServerRequest, ServerSession } from '../server/server';
 import { Repository } from 'typeorm';
-import { Server, ServerRequest } from '../server/server';
 import * as moment from 'moment';
 import * as express from 'express';
 import * as bcrypt from 'bcrypt';
@@ -18,34 +17,14 @@ export class ApplicationController extends ServerController {
 
         // to use the application routes we must be logged in
         this.router.use(async (req, res, next) => {
-            let session = req.session as UserSession;
             let serverResponse: ServerResponse = {
                 success: true,
                 response: {},
                 errors: [],
             };
 
-            let userFound = false;
-            if (session.user !== undefined) {
-                // make sure we are ready to process this as our own api server request that has some additions to it
-                let serverRequest = req as ServerRequest;
-
-                let sessionUser = await serverRequest.globals.database
-                    .raw()
-                    .getRepository(User)
-                    .findOne({
-                        where: {
-                            token: session.user.toString(),
-                            deleted_at: 0,
-                            banned_at: 0,
-                        },
-                    });
-                userFound = sessionUser !== undefined;
-            }
-
-            if (userFound) {
-                next(); // we have validated our user, move on to process the route
-            } else {
+            let serverRequest = req as ServerRequest;
+            if (serverRequest.globals.user === undefined) {
                 // we are not valid, send a json response back indicating failure
                 serverResponse.success = false;
                 serverResponse.response = {
@@ -54,6 +33,8 @@ export class ApplicationController extends ServerController {
                     valid: false,
                 };
                 res.json(serverResponse);
+            } else {
+                next();
             }
         });
 
@@ -62,22 +43,32 @@ export class ApplicationController extends ServerController {
 
         // creation routes POST METHOD
         this.router.post('/register', this.postRegister);
-        this.router.post('/update', this.postUpdate);
     }
 
+    /**
+     * Get a list of all applications tied to the authenticated user
+     * @param request
+     * @param response
+     */
     public async getList(request: express.Request, response: express.Response) {
         // make sure we are ready to process this as our own api server request that has some additions to it
         let serverRequest = request as ServerRequest;
 
         let database = serverRequest.globals.database.raw();
-        let repository = database.getRepository(Application);
+        let applicationUserRepository = database.getRepository(ApplicationUser);
+        let applicationRepostory = database.getRepository(Application);
 
-        //database.getRepository(Applica);
+        // in our case we know through middleware that our user is going to be present in the session to even
+        // access this route
+        let authenticatedUser = serverRequest.globals.user as User;
     }
 
+    /**
+     * Register a user to an application in our database
+     * @param request
+     * @param response
+     */
     public async postRegister(request: express.Request, response: express.Response) {}
-
-    public async postUpdate(request: express.Request, response: express.Response) {}
 }
 
 export default ApplicationController;

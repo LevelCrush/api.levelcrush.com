@@ -8,6 +8,7 @@ import Database from '../orm/database';
 import { Session } from '../orm/entity/session';
 import { Repository } from 'typeorm';
 import { TypeormStore } from 'connect-typeorm';
+import User from '../orm/entity/user';
 
 export interface ServerSessionSettings {
     ttl: number;
@@ -21,7 +22,13 @@ export interface ServerCorsSettings {
 export interface ServerRequest extends express.Request {
     globals: {
         database: Database;
+        user?: User;
     };
+}
+
+export interface ServerSession {
+    user?: string;
+    applications?: { [appName: string]: { [key: string]: unknown } };
 }
 
 export class Server {
@@ -61,6 +68,7 @@ export class Server {
         this.app.use((req, res, next) => {
             (req as ServerRequest).globals = {
                 database: database,
+                user: undefined,
             };
 
             next();
@@ -97,6 +105,37 @@ export class Server {
                 },
             }),
         );
+
+        this.app.use(async (req, res, next) => {
+            let session = req.session as ServerSession;
+            if (session.user !== undefined) {
+                // make sure we are ready to process this as our own api server request that has some additions to it
+                let serverRequest = req as ServerRequest;
+                serverRequest.globals.user = await serverRequest.globals.database
+                    .raw()
+                    .getRepository(User)
+                    .findOne({
+                        where: {
+                            token: session.user.toString(),
+                            deleted_at: 0,
+                            banned_at: 0,
+                        },
+                    });
+
+                if (serverRequest.globals.user !== undefined) {
+                    // this means we actually have an invalid user and should immediately regenerate the session
+                    req.session.regenerate(() => {
+                        next();
+                    });
+                } else {
+                    // user valid! move on
+                    next();
+                }
+            } else {
+                // no user in session, no need to validate. move on
+                next();
+            }
+        });
 
         // configure body parsing
         this.app.use(bodyParser.json());
