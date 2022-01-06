@@ -9,6 +9,7 @@ import { Session } from '../orm/entity/session';
 import { Repository } from 'typeorm';
 import { TypeormStore } from 'connect-typeorm';
 import User from '../orm/entity/user';
+import session = require('express-session');
 
 export interface ServerSessionSettings {
     ttl: number;
@@ -26,7 +27,7 @@ export interface ServerRequest extends express.Request {
     };
 }
 
-export interface ServerSession {
+export interface ServerSession extends session.Session {
     user?: string;
     applications?: { [appName: string]: { [key: string]: unknown } };
 }

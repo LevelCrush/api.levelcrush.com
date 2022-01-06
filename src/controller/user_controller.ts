@@ -209,6 +209,7 @@ export class UserController extends ServerController {
             serverResponse.response = {
                 valid: true,
                 user: session.user !== undefined ? session.user.toString() : null,
+                applications: session.applications !== undefined ? session.applications : null,
             };
             response.json(serverResponse);
         }
@@ -282,7 +283,7 @@ export class UserController extends ServerController {
             // provide a direct mapping to the user in the session
             let hub: Partial<User> = {
                 token: user.token.toString(),
-                token_secret: user.token_secret.toString(),
+                //token_secret: user.token_secret.toString(),
                 display_name: user.display_name,
                 display_name_full: user.display_name_full,
                 last_login_at: user.last_login_at,

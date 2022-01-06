@@ -46,6 +46,8 @@ export class ApplicationController extends ServerController {
         // creation routes POST METHOD
         this.router.post('/register', this.postRegister);
         this.router.post('/login', this.postLogin);
+
+        // fetch metadata
     }
 
     /**
@@ -315,7 +317,19 @@ export class ApplicationController extends ServerController {
             response: bodyResponse,
             errors: errors,
         };
-        response.json(serverResponse);
+
+        if (!errors.length) {
+            let serverSession = request.session as ServerSession;
+            if (serverSession.applications === undefined) {
+                serverSession.applications = {};
+            }
+            serverSession.applications[(application as Application).token] = {};
+            serverSession.save(() => {
+                response.json(serverResponse);
+            });
+        } else {
+            response.json(serverResponse);
+        }
     }
 }
 
