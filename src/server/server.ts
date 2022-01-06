@@ -122,7 +122,7 @@ export class Server {
                         },
                     });
 
-                if (serverRequest.globals.user !== undefined) {
+                if (serverRequest.globals.user === undefined) {
                     // this means we actually have an invalid user and should immediately regenerate the session
                     req.session.regenerate(() => {
                         next();

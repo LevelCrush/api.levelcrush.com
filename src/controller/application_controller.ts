@@ -55,12 +55,35 @@ export class ApplicationController extends ServerController {
         let serverRequest = request as ServerRequest;
 
         let database = serverRequest.globals.database.raw();
-        let applicationUserRepository = database.getRepository(ApplicationUser);
         let applicationRepostory = database.getRepository(Application);
 
         // in our case we know through middleware that our user is going to be present in the session to even
         // access this route
         let authenticatedUser = serverRequest.globals.user as User;
+
+        let userApplications = await applicationRepostory.find({
+            join: {
+                alias: 'applications',
+                innerJoin: {
+                    user: 'applications.user',
+                },
+            },
+            where: {
+                user: authenticatedUser.id,
+                deleted_at: 0,
+            },
+        });
+
+        let serverResponse: ServerResponse = {
+            success: true,
+            response: {
+                applications: userApplications,
+                timestamp: moment().unix(),
+            },
+            errors: [],
+        };
+
+        response.json(serverResponse);
     }
 
     /**

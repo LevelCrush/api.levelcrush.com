@@ -1,22 +1,22 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne } from 'typeorm';
-import User from './user';
+import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinTable, JoinColumn } from 'typeorm';
 import * as moment from 'moment';
-import { type } from 'os';
+import User from './user';
 
 @Entity()
+@Index(['name', 'user'], { unique: true })
 export class Application {
     @PrimaryGeneratedColumn()
     public id: number; // row id
 
     @Column({
-        type: 'binary',
+        type: 'char',
         length: 32,
         unique: true,
     })
     public token: string; // application token
 
     @Column({
-        type: 'binary',
+        type: 'char',
         length: 32,
         unique: true,
     })
@@ -29,26 +29,20 @@ export class Application {
 
     @Column({
         length: 255,
-        unique: true,
     })
+    @Index()
     public name: string; // name of the application
-
-    @Column({
-        length: 255,
-        unique: true,
-    })
-    public session_key: string; // key to the session variables
 
     @Column({
         type: 'text',
     })
     public description: string; // description of the string
 
-    @Column({
-        type: 'int',
-        unsigned: true,
-    })
+    @ManyToOne(() => User, (user) => user.applications, { nullable: false })
     @Index()
+    @JoinColumn({
+        name: 'user',
+    })
     public user: number; // the person who created this application
 
     @Column({
@@ -62,5 +56,11 @@ export class Application {
         unsigned: true,
     })
     public updated_at: number; // when the user was last updated
+
+    @Column({
+        type: 'int',
+        unsigned: true,
+    })
+    public deleted_at: number; // when the user was last updated
 }
 export default Application;

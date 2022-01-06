@@ -79,6 +79,9 @@ export class User {
         unsigned: true,
     })
     public verified_at: number; // timestamp when the user was disabled
+
+    @OneToMany(() => Application, (application) => application.user)
+    public applications: Application[];
 }
 
 export default User;
