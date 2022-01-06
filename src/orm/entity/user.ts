@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index, OneToMany } from 'typeorm';
 import * as moment from 'moment';
 import Application from './application';
+import ApplicationUser from './application_user';
 
 @Entity()
 export class User {
@@ -82,6 +83,9 @@ export class User {
 
     @OneToMany(() => Application, (application) => application.user)
     public applications: Application[];
+
+    @OneTooMany(() => ApplicationUser, (applicationUser) => applicationUser.user)
+    public applications_using: ApplicationUser[];
 }
 
 export default User;

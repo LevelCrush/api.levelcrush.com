@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinTable, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinTable, JoinColumn, OneToMany } from 'typeorm';
 import * as moment from 'moment';
 import User from './user';
+import ApplicationUser from './application_user';
 
 @Entity()
 @Index(['name', 'user'], { unique: true })
@@ -62,5 +63,8 @@ export class Application {
         unsigned: true,
     })
     public deleted_at: number; // when the user was last updated
+
+    @OneToMany(() => ApplicationUser, (appUser) => appUser.application)
+    public applicationUsers: ApplicationUser[];
 }
 export default Application;
