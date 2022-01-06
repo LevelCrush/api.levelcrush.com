@@ -16,12 +16,19 @@ export class ApplicationUser {
     })
     @Index()
     public application: number; // the row id of the application
+
     @Index()
     @Column({
         type: 'int',
         unsigned: true,
     })
     public user: number; // the row id of the user  USING the application
+
+    @Column({
+        type: 'char',
+        length: 32,
+    })
+    public token: string; // app user specific token;
 
     @Column({
         type: 'int',

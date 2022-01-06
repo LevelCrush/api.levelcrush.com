@@ -10,6 +10,8 @@ import * as moment from 'moment';
 import * as express from 'express';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { appendFile } from 'fs';
+import { freemem } from 'os';
 
 export class ApplicationController extends ServerController {
     public constructor() {
@@ -43,6 +45,7 @@ export class ApplicationController extends ServerController {
 
         // creation routes POST METHOD
         this.router.post('/register', this.postRegister);
+        this.router.post('/login', this.postLogin);
     }
 
     /**
@@ -193,6 +196,122 @@ export class ApplicationController extends ServerController {
         }
         let serverResponse: ServerResponse = {
             success: errors.length > 0,
+            response: bodyResponse,
+            errors: errors,
+        };
+        response.json(serverResponse);
+    }
+
+    public async postLogin(request: express.Request, response: express.Response) {
+        // make sure we are ready to process this as our own api server request that has some additions to it
+        let serverRequest = request as ServerRequest;
+
+        // grab database connection
+        let database = serverRequest.globals.database.raw();
+
+        // we know to even hit this route we need our user to be defined and logged in
+        // safe to cast to normal user and safe to assume we have something to work with
+        let authenticatedUser = serverRequest.globals.user as User;
+
+        // cast the body into what we are HOPEFULLY expectig
+        let form = request.body as {
+            application?: string;
+        };
+
+        let bodyResponse: { [key: string]: unknown } = {};
+
+        // validate
+        let errors: ServerResponseError[] = [];
+
+        // make sure we have a a valid application
+        let application: Application | undefined = undefined;
+        let loginApp = form.application !== undefined ? form.application.trim() : '';
+        if (!errors.length) {
+            let applicationRepository = database.getRepository(Application);
+            application = await applicationRepository.findOne({
+                where: {
+                    token: loginApp,
+                    deleted_at: 0,
+                },
+            });
+
+            if (application === undefined) {
+                errors.push({
+                    field: 'application',
+                    message: 'Please provide a valid application token',
+                });
+            }
+        }
+
+        let applicationUser: ApplicationUser | undefined = undefined;
+        let firstLoad = false;
+        if (!errors.length) {
+            // query application_users to se if we have ever loaded into this application before
+            let applicationUserRepository = database.getRepository(ApplicationUser);
+            applicationUser = await applicationUserRepository.findOne({
+                where: {
+                    application: (application as Application).id,
+                    user: (authenticatedUser as User).id,
+                    deleted_at: 0,
+                },
+            });
+
+            if (applicationUser === undefined) {
+                // first time using the application. create them in the database
+
+                let userID = (authenticatedUser as User).id;
+                let appID = (application as Application).id;
+
+                let newAppUser: Partial<ApplicationUser> = {
+                    application: appID,
+                    user: userID,
+                    token: crypto
+                        .createHash('md5')
+                        .update(moment().unix() + userID + appID + loginApp)
+                        .digest('hex'),
+                    created_at: moment().unix(),
+                    updated_at: 0,
+                    deleted_at: 0,
+                };
+
+                // save the new application_user record
+                await applicationUserRepository.save(newAppUser);
+
+                // fetch the application user that we just inserted
+                // we may be able to reuse what is returned from the repository.save(...)
+                // but this will gaurentee we get it fresh (unless typeorm has a hidden caching feature)
+                applicationUser = await applicationUserRepository.findOne({
+                    where: {
+                        application: (application as Application).id,
+                        user: (authenticatedUser as User).id,
+                        deleted_at: 0,
+                    },
+                });
+
+                if (applicationUser === undefined) {
+                    errors.push({
+                        field: 'application',
+                        message: 'There was a problem logging the user in.',
+                    });
+                } else {
+                    firstLoad = true;
+                }
+            }
+        }
+
+        if (!errors.length) {
+            bodyResponse = {
+                valid: true,
+                firstLoad: firstLoad,
+                token: (applicationUser as ApplicationUser).token,
+                application: (application as Application).token,
+                user: (authenticatedUser as User).token,
+                timestamp: moment().unix(),
+            };
+        }
+
+        let serverResponse: ServerResponse = {
+            success: errors.length === 0,
             response: bodyResponse,
             errors: errors,
         };
