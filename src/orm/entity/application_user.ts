@@ -15,16 +15,11 @@ export class ApplicationUser {
         unsigned: true,
     })
     @Index()
-    @ManyToOne(() => Application, (application) => application.applicationUsers, { nullable : false });
-    @JoinColumn({
-        name: 'application'
-    })
     public application: number; // the row id of the application
-
-    @ManyToOne(() => User , (user) => user.applications_using, { nullable: false })
     @Index()
-    @JoinColumn({
-        name: 'user'
+    @Column({
+        type: 'int',
+        unsigned: true,
     })
     public user: number; // the row id of the user  USING the application
 
@@ -45,9 +40,6 @@ export class ApplicationUser {
         unsigned: true,
     })
     public deleted_at: number; // when the user was last updated
-
-    @OneToMany(() => ApplicationUserMetadata, (appUserData) => appUserData.application_user)
-    public metadata: ApplicationUserMetadata[];
 }
 
 export default ApplicationUser;

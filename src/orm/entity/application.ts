@@ -39,10 +39,10 @@ export class Application {
     })
     public description: string; // description of the string
 
-    @ManyToOne(() => User, (user) => user.applications, { nullable: false })
     @Index()
-    @JoinColumn({
-        name: 'user',
+    @Column({
+        type: 'int',
+        unsigned: true,
     })
     public user: number; // the person who created this application
 
@@ -63,8 +63,5 @@ export class Application {
         unsigned: true,
     })
     public deleted_at: number; // when the user was last updated
-
-    @OneToMany(() => ApplicationUser, (appUser) => appUser.application)
-    public applicationUsers: ApplicationUser[];
 }
 export default Application;

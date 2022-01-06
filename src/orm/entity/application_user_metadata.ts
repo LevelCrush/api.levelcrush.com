@@ -12,16 +12,16 @@ export class ApplicationUserMetadata {
     public id: number; // row id
 
     @Index()
-    @ManyToOne(() => Application, (app) => app.id)
-    @JoinColumn({
-        name: 'application',
+    @Column({
+        type: 'int',
+        unsigned: true,
     })
     public application: number; // the row id of the application
 
     @Index()
-    @ManyToOne(() => ApplicationUser, (appUser) => appUser.metadata, { nullable: false })
-    @JoinColumn({
-        name: 'application_user',
+    @Column({
+        type: 'int',
+        unsigned: true,
     })
     public application_user: number; // the row id of the matching user in `application_users`
 
