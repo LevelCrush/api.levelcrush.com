@@ -1,5 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
 import * as moment from 'moment';
+import ApplicationUser from './application_user';
+import Application from './application';
+import { application } from 'express';
 
 @Entity()
 @Index(['application', 'application_user'])
@@ -8,18 +11,18 @@ export class ApplicationUserMetadata {
     @PrimaryGeneratedColumn()
     public id: number; // row id
 
-    @Column({
-        type: 'int',
-        unsigned: true,
-    })
     @Index()
+    @ManyToOne(() => Application, (app) => app.id)
+    @JoinColumn({
+        name: 'application',
+    })
     public application: number; // the row id of the application
 
-    @Column({
-        type: 'int',
-        unsigned: true,
-    })
     @Index()
+    @ManyToOne(() => ApplicationUser, (appUser) => appUser.metadata, { nullable: false })
+    @JoinColumn({
+        name: 'application_user',
+    })
     public application_user: number; // the row id of the matching user in `application_users`
 
     @Column({
