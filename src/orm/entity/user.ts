@@ -9,14 +9,14 @@ export class User {
     public id: number; // row id
 
     @Column({
-        type: 'binary',
+        type: 'char',
         length: 32,
         unique: true,
     })
     public token: string; // for public usage, will be a md5 hash
 
     @Column({
-        type: 'binary',
+        type: 'char',
         length: 32,
         unique: true,
     })
@@ -29,7 +29,7 @@ export class User {
     public email: string; // for account linking purposes
 
     @Column({
-        type: 'binary',
+        type: 'char',
         length: 60,
     })
     public password: string; // for backup access purposes
