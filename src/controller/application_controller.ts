@@ -62,12 +62,6 @@ export class ApplicationController extends ServerController {
         let authenticatedUser = serverRequest.globals.user as User;
 
         let userApplications = await applicationRepostory.find({
-            join: {
-                alias: 'applications',
-                innerJoin: {
-                    user: 'applications.user',
-                },
-            },
             where: {
                 user: authenticatedUser.id,
                 deleted_at: 0,
