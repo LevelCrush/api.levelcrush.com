@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, Index, OneToMany } from 'typeor
 import * as moment from 'moment';
 
 @Entity()
-export class User {
+export class UserPlatform {
     @PrimaryGeneratedColumn()
     public id: number; // row id
 
