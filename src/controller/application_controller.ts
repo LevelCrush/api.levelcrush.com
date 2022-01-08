@@ -4,14 +4,11 @@ import ApplicationUser from '../orm/entity/application_user';
 import ApplicationUserMetadata from '../orm/entity/application_user_metadata';
 
 import { ServerController, ServerResponse, ServerResponseError } from '../server/server_controller';
-import { Server, ServerRequest, ServerSession } from '../server/server';
+import { ServerRequest, ServerSession } from '../server/server';
 import { ILike, Repository } from 'typeorm';
 import * as moment from 'moment';
 import * as express from 'express';
-import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { appendFile } from 'fs';
-import { freemem } from 'os';
 
 export class ApplicationController extends ServerController {
     public constructor() {
