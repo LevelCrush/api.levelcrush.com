@@ -155,6 +155,15 @@ export class Server {
         this.app.get('/ping', (req, res) => {
             res.sendStatus(200);
         });
+
+        this.app.use('/favicon.ico', (req, res) => {
+            res.sendStatus(200);
+        });
+
+        this.app.use('/robots.txt', (req, res) => {
+            res.type('text/plain');
+            res.send('User-agent: *\nDisallow: /');
+        });
     }
 
     public router(route: string, router: express.Router) {
@@ -163,6 +172,10 @@ export class Server {
     }
 
     public start() {
+        // on start add this wildcard route to catch anything else
+        this.app.use((req, res) => {
+            res.sendStatus(404);
+        });
         return new Promise(() => {
             this.app.listen(this.port, () => {
                 console.log('Now listening on ' + this.port);
