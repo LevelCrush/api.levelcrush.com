@@ -6,6 +6,7 @@ import * as moment from 'moment';
 import * as express from 'express';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import Application from '../orm/entity/application';
 
 export class UserController extends ServerController {
     public constructor() {
@@ -17,8 +18,97 @@ export class UserController extends ServerController {
 
         this.router.post('/login', this.postLogin);
         this.router.post('/register', this.postRegister);
+        this.router.post('/exists', this.postUserExists);
     }
+    public async postUserExists(request: express.Request, response: express.Response) {
+        // make sure we are ready to process this as our own api server request that has some additions to it
+        let serverRequest = request as ServerRequest;
 
+        // this is what we are hoping to get in, make sure to appropriately type the body
+        let form = request.body as {
+            user?: string;
+            token?: boolean | string | number;
+        };
+
+        let bodyResponse: { [key: string]: unknown } = {};
+
+        // validate
+        let errors: ServerResponseError[] = [];
+
+        let isTokenRequest = false;
+        if (form.token !== undefined) {
+            switch (typeof form.token) {
+                case 'boolean':
+                    isTokenRequest = form.token;
+                    break;
+                default:
+                    isTokenRequest =
+                        (typeof form.token === 'string' &&
+                            (form.token.toLowerCase() === 'yes' || form.token === '1' || form.token === 'true')) ||
+                        form.token === 1
+                            ? true
+                            : false;
+                    break;
+            }
+        } else {
+            isTokenRequest = false;
+        }
+
+        let userExists = false;
+        let userID = form.user !== undefined ? form.user : '';
+        if (isTokenRequest) {
+            if (userID.length === 0) {
+                errors.push({
+                    field: 'user',
+                    message: 'Please specify a user',
+                });
+            }
+        } else {
+            if (userID.length === 0) {
+                errors.push({
+                    field: 'user',
+                    message: 'Please specify a user',
+                });
+            }
+        }
+
+        if (!errors.length) {
+            let userRepository = serverRequest.globals.database.raw().getRepository(User);
+            let user: User | undefined = undefined;
+            // look up in database to see if this email is taken
+            if (isTokenRequest) {
+                user = await userRepository.findOne({
+                    where: {
+                        token: userID,
+                    },
+                });
+            } else {
+                user = await userRepository.findOne({
+                    where: {
+                        email: userID,
+                    },
+                });
+            }
+
+            if (user === undefined) {
+                userExists = false;
+                errors.push({
+                    field: 'user',
+                    message: 'This user does not exist',
+                });
+            } else {
+                userExists = true;
+            }
+        }
+
+        bodyResponse['exists'] = userExists;
+
+        response.json({
+            success: errors.length === 0 ? true : false,
+            response: bodyResponse,
+            errors: errors,
+        });
+    }
     public async postRegister(request: express.Request, response: express.Response) {
         // make sure we are ready to process this as our own api server request that has some additions to it
         let serverRequest = request as ServerRequest;
@@ -229,6 +319,8 @@ export class UserController extends ServerController {
             method?: 'password' | 'token';
             email?: string;
             password?: string;
+            app_token?: string;
+            app_token_secret?: string;
         };
 
         let bodyResponse: { [key: string]: unknown } = {};
@@ -238,18 +330,40 @@ export class UserController extends ServerController {
             form.method !== undefined && form.method.trim().toLowerCase() === 'token' ? 'token' : 'password';
         let loginEmail = form.email !== undefined ? form.email.toLowerCase().trim() : '';
         let loginPassword = form.password !== undefined ? form.password : '';
+        let appToken = form.app_token !== undefined ? form.app_token : '';
+        let appTokenSecret = form.app_token_secret !== undefined ? form.app_token_secret : '';
 
         let repository = serverRequest.globals.database.raw().getRepository(User);
-        let user: User | undefined = undefined;
-        switch (loginMethod) {
-            /*case 'token': for now this is not supported. Need to flesh this out more
-                user = await repository.findOne({
+        let application: Application | undefined = undefined;
+
+        let allowTokenLogin = false;
+        // if we have been supplied both app token and app token secret check application record
+        if (appToken.length > 0) {
+            application = await serverRequest.globals.database
+                .raw()
+                .getRepository(Application)
+                .findOne({
                     where: {
-                        email: loginEmail,
-                        token: loginPassword,
+                        token: appToken,
+                        deleted_at: 0,
                     },
                 });
-                break; */
+            allowTokenLogin = application !== undefined;
+        }
+
+        let user: User | undefined = undefined;
+        switch (loginMethod) {
+            case 'token':
+                user = allowTokenLogin
+                    ? await repository.findOne({
+                          where: {
+                              token: loginPassword,
+                              deleted_at: 0,
+                              banned_at: 0,
+                          },
+                      })
+                    : undefined;
+                break;
             case 'password':
             default:
                 user = await repository.findOne({

@@ -16,24 +16,28 @@ export class ApplicationController extends ServerController {
 
         // to use the application routes we must be logged in
         this.router.use(async (req, res, next) => {
-            let serverResponse: ServerResponse = {
-                success: true,
-                response: {},
-                errors: [],
-            };
-
-            let serverRequest = req as ServerRequest;
-            if (serverRequest.globals.user === undefined) {
-                // we are not valid, send a json response back indicating failure
-                serverResponse.success = false;
-                serverResponse.response = {
-                    message: 'Please login',
-                    user: null,
-                    valid: false,
+            if (req.method.toLowerCase() !== 'options') {
+                let serverResponse: ServerResponse = {
+                    success: true,
+                    response: {},
+                    errors: [],
                 };
-                res.json(serverResponse);
+
+                let serverRequest = req as ServerRequest;
+                if (serverRequest.globals.user === undefined) {
+                    // we are not valid, send a json response back indicating failure
+                    serverResponse.success = false;
+                    serverResponse.response = {
+                        message: 'Please login',
+                        user: null,
+                        valid: false,
+                    };
+                    res.json(serverResponse);
+                } else {
+                    next();
+                }
             } else {
-                next();
+                res.sendStatus(200);
             }
         });
 
@@ -194,7 +198,7 @@ export class ApplicationController extends ServerController {
             };
         }
         let serverResponse: ServerResponse = {
-            success: errors.length > 0,
+            success: errors.length === 0,
             response: bodyResponse,
             errors: errors,
         };
