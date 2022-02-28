@@ -156,8 +156,14 @@ export class Server {
             res.sendStatus(200);
         });
 
+        // setup dummy routes for the favicon and robot(s) txt files
         this.app.use('/favicon.ico', (req, res) => {
             res.sendStatus(200);
+        });
+
+        this.app.use('/robot.txt', (req, res) => {
+            res.type('text/plain');
+            res.send('User-agent: *\nDisallow: /');
         });
 
         this.app.use('/robots.txt', (req, res) => {
