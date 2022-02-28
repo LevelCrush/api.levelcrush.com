@@ -151,6 +151,10 @@ export class Server {
                 errors: [],
             });
         });
+
+        this.app.get('/ping', (req, res) => {
+            res.sendStatus(200);
+        });
     }
 
     public router(route: string, router: express.Router) {
