@@ -19,6 +19,7 @@ export class UserController extends ServerController {
         this.router.post('/login', this.postLogin);
         this.router.post('/register', this.postRegister);
         this.router.post('/exists', this.postUserExists);
+        this.router.post('/update', this.postUserUpdate);
     }
     public async postUserExists(request: express.Request, response: express.Response) {
         // make sure we are ready to process this as our own api server request that has some additions to it
@@ -301,6 +302,83 @@ export class UserController extends ServerController {
                 user: session.user !== undefined ? session.user.toString() : null,
                 applications: session.applications !== undefined ? session.applications : null,
             };
+            response.json(serverResponse);
+        }
+    }
+
+    public async postUserUpdate(request: express.Request, response: express.Response) {
+        let session = request.session as ServerSession;
+        let serverResponse: ServerResponse = {
+            success: true,
+            response: {},
+            errors: [],
+        };
+        // this is what we are hoping to get in, make sure to appropriately type the body
+        let form = request.body as {
+            displayName?: string;
+            user?: string;
+            application?: string;
+        };
+        let errors: ServerResponseError[] = [];
+        let applicationID = form.application !== undefined ? form.application.trim() : '';
+        let userID = form.user !== undefined ? form.user.trim() : '';
+        let userDisplayNameFull = form.displayName !== undefined ? form.displayName.trim() : '';
+        let userDisplayName = userDisplayNameFull.toLowerCase();
+
+        // for now we are only supporting the ability to update display names (for now)
+        let application: Application | undefined = undefined;
+        let user: User | undefined = undefined;
+
+        let database = (request as ServerRequest).globals.database.raw();
+
+        application = await database.getRepository(Application).findOne({
+            where: {
+                token: applicationID,
+                deleted_at: 0,
+            },
+        });
+        if (application === undefined) {
+            errors.push({
+                field: 'application',
+                message: 'Please specify a valid application id',
+            });
+        }
+
+        if (!errors.length) {
+            user = await database.getRepository(User).findOne({
+                where: {
+                    token: userID,
+                    deleted_at: 0,
+                    banned_at: 0,
+                },
+            });
+            if (user === undefined) {
+                errors.push({
+                    field: 'user',
+                    message: 'Please specify a valid user',
+                });
+            }
+        }
+
+        if (!errors.length && application !== undefined && user !== undefined) {
+            user.display_name = userDisplayName.trim().length > 0 ? userDisplayName.trim() : user.display_name;
+            user.display_name_full =
+                userDisplayNameFull.trim().length > 0 ? userDisplayNameFull.trim() : user.display_name_full;
+            await database.getRepository(User).save(user);
+
+            serverResponse.response = {
+                display_name: user.display_name,
+                display_name_full: userDisplayNameFull,
+            };
+
+            console.log('display name updated');
+            serverResponse.success = true;
+            serverResponse.errors = [];
+            response.json(serverResponse);
+        } else {
+            console.log('did not update user');
+            serverResponse.success = false;
+            serverResponse.errors = [];
             response.json(serverResponse);
         }
     }
