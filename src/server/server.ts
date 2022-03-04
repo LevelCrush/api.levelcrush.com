@@ -10,6 +10,9 @@ import { Repository } from 'typeorm';
 import { TypeormStore } from 'connect-typeorm';
 import User from '../orm/entity/user';
 import session = require('express-session');
+import ENV from '../env';
+import * as https from 'https';
+import * as fs from 'fs';
 
 export interface ServerSessionSettings {
     ttl: number;
@@ -39,6 +42,7 @@ export class Server {
     private sessionSettings: ServerSessionSettings;
     private corSettings: ServerCorsSettings;
     private port: number = 8080;
+    private httpsServer: https.Server | undefined;
 
     private readonly defaultCorsSettings: ServerCorsSettings = {
         origins: ['*'],
@@ -48,22 +52,33 @@ export class Server {
         secret: 'goodsoup',
     };
 
-    public constructor(database: Database, sessionSettings?: ServerSessionSettings, corsSettings?: ServerCorsSettings) {
+    public constructor(database: Database) {
         this.database = database;
         this.sessionRepository = this.database.raw().getRepository(Session);
 
+        this.port = ENV.server && ENV.server.port !== undefined ? ENV.server.port : 8080;
+
         // if we have no session settings defined use our defaults, if we have defined session settings, merge them with the defaults via object spread
         this.sessionSettings =
-            sessionSettings === undefined
+            ENV.server && ENV.server.session === undefined
                 ? this.defaultSessionSettings
-                : { ...this.defaultSessionSettings, ...sessionSettings };
+                : { ...this.defaultSessionSettings, ...(ENV.server && ENV.server.session ? ENV.server.session : {}) };
 
         // repeat the same step of above but this time for cor settings
-        this.corSettings =
-            corsSettings === undefined ? this.defaultCorsSettings : { ...this.defaultCorsSettings, ...corsSettings };
+        this.corSettings = { ...this.defaultCorsSettings, ...{} };
 
         // create our express app
         this.app = express();
+        let enableSSL = ENV.server && ENV.server.ssl !== undefined ? true : false;
+        if (ENV.server && ENV.server.ssl !== undefined) {
+            this.httpsServer = https.createServer(
+                {
+                    key: fs.readFileSync(ENV.server.ssl.key),
+                    cert: fs.readFileSync(ENV.server.ssl.cert),
+                },
+                this.app,
+            );
+        }
 
         // store important things in the middleware for use later
         this.app.use((req, res, next) => {
@@ -183,9 +198,15 @@ export class Server {
             res.sendStatus(404);
         });
         return new Promise(() => {
-            this.app.listen(this.port, () => {
-                console.log('Now listening on ' + this.port);
-            });
+            if (this.httpsServer !== undefined) {
+                this.httpsServer.listen(this.port, () => {
+                    console.log('Doing something on ' + this.port);
+                });
+            } else {
+                this.app.listen(this.port, () => {
+                    console.log('Now listening on ' + this.port);
+                });
+            }
         });
     }
 }
