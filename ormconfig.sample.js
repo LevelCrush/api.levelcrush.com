@@ -1,4 +1,4 @@
-export = {
+module.exports = {
 
   "type": "mysql",
   "host": "localhost",
