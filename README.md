@@ -271,7 +271,3 @@ TODO: include database schema readme
 -   Typescript: [https://www.typescriptlang.org/docs/](https://www.typescriptlang.org/docs/)
 -   Express: [https://expressjs.com/en/4x/api.html](https://expressjs.com/en/4x/api.html)
 -   TypeORM: [https://typeorm.io/#/](https://typeorm.io/#/)
-
-```
-
-```
