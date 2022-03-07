@@ -4,6 +4,7 @@ import Server from './server/server';
 import ServerController from './server/server_controller';
 import UserController from './controller/user_controller';
 import ApplicationController from './controller/application_controller';
+import CreatorController from './controller/creator_controller';
 
 async function main(): Promise<void> {
     console.log('Starting database');
@@ -14,7 +15,7 @@ async function main(): Promise<void> {
     let server = new Server(database);
 
     console.log('Loading Routes + Controllers');
-    let controllers: ServerController[] = [new UserController(), new ApplicationController()];
+    let controllers: ServerController[] = [new UserController(), new ApplicationController(), new CreatorController()];
     controllers.forEach((controller, index) => {
         server.router(controller.route, controller.router);
     });
