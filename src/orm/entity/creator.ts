@@ -28,6 +28,14 @@ export class Creator {
     @Column('varchar')
     public embed: string;
 
+    // what application registered this creator
+    @Column({
+        type: 'char',
+        length: 32,
+    })
+    @Index()
+    public registered_application: string;
+
     // some embeds in the future may require us to store additional data that we cannot
     // store into fields here
     @Column('text')
