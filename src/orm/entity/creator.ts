@@ -15,8 +15,12 @@ export class Creator {
     // what platform does this belong to
     // most will probably be twitch...hopefully
     @Index()
-    @Column('int')
-    public platform: number;
+    @Column('varchar')
+    public platform: string;
+
+    // either a hard or relative path(on the server) that points to where the avatar is stored
+    @Column('varchar')
+    public avatar: string;
 
     // link to the main "creator" url
     @Column('varchar')
@@ -27,14 +31,6 @@ export class Creator {
     // for youtube it would be the embed link
     @Column('varchar')
     public embed: string;
-
-    // what application registered this creator
-    @Column({
-        type: 'char',
-        length: 32,
-    })
-    @Index()
-    public registered_application: string;
 
     // some embeds in the future may require us to store additional data that we cannot
     // store into fields here
