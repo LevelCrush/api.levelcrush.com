@@ -47,8 +47,45 @@ export class ApplicationController extends ServerController {
         // creation routes POST METHOD
         this.router.post('/register', this.postRegister);
         this.router.post('/login', this.postLogin);
+        this.router.post('/verify', this.postVerify);
 
         // fetch metadata
+    }
+
+    public async postVerify(request: express.Request, response: express.Response) {
+        // make sure we are ready to process this as our own api server request that has some additions to it
+        let serverRequest = request as ServerRequest;
+
+        let database = serverRequest.globals.database.raw();
+        let applicationRepostory = database.getRepository(Application);
+
+        // cast the body into what we are HOPEFULLY expectig
+        let form = request.body as {
+            token?: string;
+            token_secret?: string;
+        };
+
+        let appToken = form.token !== undefined ? form.token.trim() : '';
+        let appTokenSecret = form.token_secret !== undefined ? form.token_secret.trim() : '';
+
+        const application = await applicationRepostory.findOne({
+            where: {
+                token: appToken,
+                token_secret: appTokenSecret,
+                deleted_at: 0,
+            },
+        });
+
+        let serverResponse: ServerResponse = {
+            success: true,
+            response: {
+                verified: application !== undefined ? true : false,
+                timestamp: moment().unix(),
+            },
+            errors: [],
+        };
+
+        response.json(serverResponse);
     }
 
     /**

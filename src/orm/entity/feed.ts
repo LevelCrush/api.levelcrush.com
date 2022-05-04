@@ -24,7 +24,7 @@ export class Feed {
     public name: string;
 
     @Column({
-        type: 'text',
+        type: 'longtext',
     })
     public data: string;
 
