@@ -14,9 +14,12 @@ export class ApplicationController extends ServerController {
     public constructor() {
         super('/application');
 
+        let nonUserRoutes = ['/application/verify'];
         // to use the application routes we must be logged in
         this.router.use(async (req, res, next) => {
-            if (req.method.toLowerCase() !== 'options') {
+            if (nonUserRoutes.includes(req.originalUrl)) {
+                next();
+            } else if (req.method.toLowerCase() !== 'options') {
                 let serverResponse: ServerResponse = {
                     success: true,
                     response: {},
