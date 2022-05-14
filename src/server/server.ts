@@ -154,8 +154,8 @@ export class Server {
         });
 
         // configure body parsing
-        this.app.use(bodyParser.json());
-        this.app.use(bodyParser.urlencoded({ extended: true }));
+        this.app.use(bodyParser.json({ limit: '5mb' }));
+        this.app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
 
         this.app.get('/', (req, res) => {
             res.json({
