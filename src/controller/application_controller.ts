@@ -17,7 +17,7 @@ export class ApplicationController extends ServerController {
         let nonUserRoutes = ['/application/verify'];
         // to use the application routes we must be logged in
         this.router.use(async (req, res, next) => {
-            if (nonUserRoutes.includes(req.originalUrl)) {
+            if (nonUserRoutes.includes(req.originalUrl.toLowerCase())) {
                 next();
             } else if (req.method.toLowerCase() !== 'options') {
                 let serverResponse: ServerResponse = {
@@ -52,7 +52,233 @@ export class ApplicationController extends ServerController {
         this.router.post('/login', this.postLogin);
         this.router.post('/verify', this.postVerify);
 
+        this.router.post('/metadata/write', this.postMetadata);
+        this.router.post('/metadata/read', this.getMetadata);
+
         // fetch metadata
+    }
+
+    public async getMetadata(request: express.Request, response: express.Response) {
+        //
+
+        const serverRequest = request as ServerRequest;
+        const database = serverRequest.globals.database.raw();
+        const form = serverRequest.body as {
+            token?: string;
+            token_secret?: string;
+            user?: string; // the token of the user account (we will link to account_user on our end)
+            userSecret?: string;
+            key?: string;
+        };
+
+        const appToken = form.token || '';
+        const appTokenSecret = form.token_secret || '';
+        const userToken = form.user || '';
+        const userSecretToken = form.userSecret || '';
+        const metadataKey = form.key || '';
+        let serverResponse = {
+            success: true,
+            errors: [],
+            response: {},
+        } as ServerResponse;
+
+        // make sure we have a valid user and application
+        const [application, user] = await Promise.all([
+            database.getRepository(Application).findOne({
+                where: {
+                    token: appToken,
+                    token_secret: appTokenSecret,
+                    deleted_at: 0,
+                },
+            }),
+            database.getRepository(User).findOne({
+                where: {
+                    token: userToken,
+                    token_secret: userSecretToken,
+                    deleted_at: 0, // not disabled
+                },
+            }),
+        ]);
+
+        if (application === undefined) {
+            serverResponse.errors.push({
+                field: 'application',
+                message: 'Please specify a valid application',
+            });
+        }
+
+        if (user === undefined) {
+            serverResponse.errors.push({
+                field: 'user',
+                message: 'Please specify a valid user',
+            });
+        }
+
+        let applicationUser = undefined as ApplicationUser | undefined;
+        if (!serverResponse.errors.length && application && user) {
+            applicationUser = await database.getRepository(ApplicationUser).findOne({
+                where: {
+                    application: application.id,
+                    user: user.id,
+                    deleted_at: 0, // not disabled
+                },
+            });
+            if (applicationUser === undefined) {
+                serverResponse.errors.push({
+                    field: 'applicationUser',
+                    message: 'Could not find a user tied to the application',
+                });
+            }
+        }
+
+        if (!serverResponse.errors.length && application && user && applicationUser) {
+            const metadata = await database.getRepository(ApplicationUserMetadata).findOne({
+                where: {
+                    application: application.id,
+                    application_user: applicationUser.id,
+                    key: metadataKey,
+                    deleted_at: 0,
+                },
+            });
+
+            if (metadata === undefined) {
+                serverResponse.errors.push({
+                    field: 'key',
+                    message: 'Key does not exist in metadata store',
+                });
+            }
+
+            // no matter what lets send back a response.
+            // if metadata value == null then that means there what no metadata found
+            serverResponse.response = {
+                key: metadataKey,
+                value: metadata !== undefined ? metadata.value : null,
+            };
+        }
+
+        serverResponse.success = serverResponse.errors.length === 0 ? true : false;
+        response.json(serverResponse);
+    }
+
+    public async postMetadata(request: express.Request, response: express.Response) {
+        //
+        const serverRequest = request as ServerRequest;
+        const database = serverRequest.globals.database.raw();
+        const form = serverRequest.body as {
+            token?: string;
+            token_secret?: string;
+            user?: string; // the token of the user account (we will link to account_user on our end)
+            userSecret?: string;
+            key?: string;
+            value?: string;
+        };
+
+        const appToken = form.token || '';
+        const appTokenSecret = form.token_secret || '';
+        const userToken = form.user || '';
+        const userSecretToken = form.userSecret || '';
+        const metadataKey = form.key || '';
+        const metadataValue = form.value || '';
+        let serverResponse = {
+            success: true,
+            errors: [],
+            response: {},
+        } as ServerResponse;
+
+        // make sure we have a valid user and application
+        const [application, user] = await Promise.all([
+            database.getRepository(Application).findOne({
+                where: {
+                    token: appToken,
+                    token_secret: appTokenSecret,
+                    deleted_at: 0,
+                },
+            }),
+            database.getRepository(User).findOne({
+                where: {
+                    token: userToken,
+                    token_secret: userSecretToken,
+                    deleted_at: 0, // not disabled
+                },
+            }),
+        ]);
+
+        if (application === undefined) {
+            serverResponse.errors.push({
+                field: 'application',
+                message: 'Please specify a valid application',
+            });
+        }
+
+        if (user === undefined) {
+            serverResponse.errors.push({
+                field: 'user',
+                message: 'Please specify a valid user',
+            });
+        }
+
+        if (!serverResponse.errors.length) {
+            if (metadataValue.length > 255) {
+                serverResponse.errors.push({
+                    field: 'value',
+                    message: 'Please restrict the value to less then 255 characters',
+                });
+            }
+        }
+
+        let applicationUser = undefined as ApplicationUser | undefined;
+        if (!serverResponse.errors.length && application && user) {
+            applicationUser = await database.getRepository(ApplicationUser).findOne({
+                where: {
+                    application: application.id,
+                    user: user.id,
+                    deleted_at: 0, // not disabled
+                },
+            });
+            if (applicationUser === undefined) {
+                serverResponse.errors.push({
+                    field: 'applicationUser',
+                    message: 'Could not find a user tied to the application',
+                });
+            }
+        }
+
+        if (!serverResponse.errors.length && application && user && applicationUser) {
+            const metadata = await database.getRepository(ApplicationUserMetadata).findOne({
+                where: {
+                    application: application.id,
+                    application_user: applicationUser.id,
+                    key: metadataKey,
+                    deleted_at: 0,
+                },
+            });
+
+            if (metadata === undefined) {
+                await database.getRepository(ApplicationUserMetadata).save({
+                    application: application.id,
+                    application_user: applicationUser.id,
+                    key: metadataKey,
+                    value: metadataValue,
+                    created_at: moment().unix(),
+                    updated_at: 0,
+                    deleted_at: 0,
+                });
+            } else {
+                metadata.value = metadataValue;
+                metadata.updated_at = moment().unix();
+                await database.getRepository(ApplicationUserMetadata).save(metadata);
+            }
+
+            // no matter what lets send back a response.
+            // if metadata value == null then that means there what no metadata found
+            serverResponse.response = {
+                key: metadataKey,
+                value: metadataValue,
+            };
+        }
+
+        serverResponse.success = serverResponse.errors.length === 0 ? true : false;
+        response.json(serverResponse);
     }
 
     public async postVerify(request: express.Request, response: express.Response) {

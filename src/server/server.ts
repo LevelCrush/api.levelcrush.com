@@ -111,6 +111,7 @@ export class Server {
                 credentials: true,
                 preflightContinue: true,
                 origin: (origin, callback) => {
+                    console.log('origin');
                     origin = origin !== undefined ? origin : '';
                     let allowAll = this.corSettings.origins[0] === '*';
                     let originAllowed = allowAll || this.corSettings.origins.indexOf(origin) !== -1;
