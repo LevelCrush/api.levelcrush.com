@@ -49,3 +49,6 @@ ormconfig.js
 
 bin/*
 obj/*
+
+level-crush-*.json 
+level-crush-*.key.json
