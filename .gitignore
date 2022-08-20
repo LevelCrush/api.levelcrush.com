@@ -52,3 +52,4 @@ obj/*
 
 level-crush-*.json 
 level-crush-*.key.json
+credentials.json
