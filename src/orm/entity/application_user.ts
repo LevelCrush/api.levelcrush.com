@@ -1,8 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, OneToOne, JoinColumn, OneToMany } from 'typeorm';
-import * as moment from 'moment';
-import Application from './application';
-import User from './user';
-import ApplicationUserMetadata from './application_user_metadata';
 
 @Entity()
 @Index(['application', 'user'], { unique: true })

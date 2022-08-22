@@ -1,18 +1,13 @@
 import * as fs from 'fs';
 import { GoogleAuth } from 'google-auth-library';
 import { google, sheets_v4 } from 'googleapis';
+import { ideahub } from 'googleapis/build/src/apis/ideahub';
 
 /** Configuration properties for the google sheet */
 export interface GoogleSheetConfig {
-    id: string;
+    workbook_id: string;
     credential_path: string;
     verbose?: boolean;
-}
-
-/**
- * Configuration that tells our instance where to write in the google sheet
- */
-export interface GoogleSheetWriteConfig {
     sheet_name: string;
     header_range: string;
 }
@@ -24,54 +19,13 @@ export interface GoogleSheetWriteConfig {
 export type GoogleSheetWriteData = { [header: string]: string };
 
 /**
- * This will come into play when mapping ranges with the columns and rows
- */
-export const GOOGLE_CELL_COLUMNS = {
-    A: 0,
-    B: 1,
-    C: 2,
-    D: 3,
-    E: 4,
-    F: 5,
-    G: 6,
-    H: 7,
-    I: 8,
-    J: 9,
-    K: 10,
-    L: 11,
-    M: 12,
-    N: 13,
-    O: 14,
-    P: 15,
-    Q: 16,
-    R: 17,
-    S: 18,
-    T: 19,
-    U: 20,
-    V: 21,
-    W: 22,
-    X: 23,
-    Y: 24,
-    Z: 25,
-} as { [cell_letter: string]: number };
-
-// use a function closure to immediately flip the values and keys in the GOOGLE_CELL_COLUMNS object
-export const GOOGLE_CELL_COLUMNS_INVERTED = (() => {
-    let result = {} as { [key: number]: string };
-    Object.keys(GOOGLE_CELL_COLUMNS).forEach((key) => {
-        result[GOOGLE_CELL_COLUMNS[key]] = key;
-    });
-    return result;
-})();
-
-/**
  * Constructs a google sheet instance that handles authentication/getting/setting values/rows
  */
 export class GoogleSpreadsheet {
     private config: GoogleSheetConfig;
     private auth: GoogleAuth | undefined;
     private google: sheets_v4.Sheets | undefined;
-    private spreadsheet: sheets_v4.Schema$Spreadsheet | undefined;
+    private header_values: string[];
 
     /** Constructs a google sheet instance and handles sending/retrieving data
      *
@@ -81,7 +35,7 @@ export class GoogleSpreadsheet {
         this.config = config;
         this.auth = undefined;
         this.google = undefined;
-        this.spreadsheet = undefined;
+        this.header_values = [];
     }
 
     private log(msg: any) {
@@ -128,15 +82,26 @@ export class GoogleSpreadsheet {
 
             this.log('Finished constructing. Attempting to get google sheet');
 
-            const response = await this.google.spreadsheets.get({
-                spreadsheetId: this.config.id,
-                includeGridData: true,
+            this.log('Grabbing Cells in the header range');
+            const target_range = this.config.sheet_name + '!' + this.config.header_range;
+            const response = await this.google.spreadsheets.values.get({
+                spreadsheetId: this.config.workbook_id,
+                range: target_range,
             });
 
-            if (response.status === 200 && response.data && response.data.sheets) {
-                this.spreadsheet = response.data;
-            } else {
-                this.log('Failed to get google sheet : ' + this.config.id);
+            if (response.data.values) {
+                this.log('Values found. Copying to header values');
+                response.data.values.every((value, index) => {
+                    value.forEach((cell_v) => {
+                        this.header_values.push(cell_v);
+                    });
+                    return false; // we will only process the first range
+                });
+                this.log('Total Headers found: ' + this.header_values.length);
+            }
+
+            if (this.header_values.length === 0) {
+                this.log('Failed to get google sheet : ' + this.config.workbook_id);
                 // this throw will trigger our 'false' value return with the catch
                 // keeping it compliant with the above calls
                 // there is a better way to do this. But for now it works
@@ -151,88 +116,67 @@ export class GoogleSpreadsheet {
         }
     }
 
-    private get_headers(sheet: sheets_v4.Schema$Sheet, header_range: GoogleSheetWriteConfig['header_range']) {
-        const headers: { [key: string]: string } = {};
-
+    public get_headers() {
+        let headers: { [key: string]: number } = {};
+        this.header_values.forEach((header, header_index) => {
+            headers[header] = header_index;
+        });
         return headers;
     }
 
-    public async write(data: GoogleSheetWriteData, config: GoogleSheetWriteConfig) {
-        let sheet: sheets_v4.Schema$Sheet | undefined = undefined;
-        if (this.spreadsheet && this.spreadsheet.sheets) {
-            // find the target sheet
-            for (let i = 0; i < this.spreadsheet.sheets.length; i++) {
-                const sheet_iter = this.spreadsheet.sheets[i];
-                if (sheet_iter.properties && sheet_iter.properties.title === config.sheet_name) {
-                    sheet = sheet_iter;
-                    break;
+    public async write(data: GoogleSheetWriteData) {
+        if (this.google && this.header_values.length > 0) {
+            // obtain headers based off our range
+            const headers = this.get_headers();
+
+            // begin formatting or 'data' into a proper array that will match where our headers are placed
+            // this is important. Because headers may look like so
+            // Headers ---  A B C D E F G
+            // And then may be rearranged into
+            // Headers --- B F G A
+            // and if we simply pass our data in 1:1 it will not map correctly
+            // this resolves the issue
+
+            let formatted_row: string[] = [];
+            for (let i = 0; i < Object.keys(headers).length; i++) {
+                formatted_row[i] = 'N/A'; // prefill empty value
+            }
+
+            let start_column = 0;
+            let end_column = 0;
+            for (let field in data) {
+                const matching_index = typeof headers[field] != 'undefined' ? headers[field] : -1;
+                if (matching_index >= 0) {
+                    formatted_row[matching_index] = data[field];
+
+                    if (formatted_row[matching_index].length > 50000) {
+                        formatted_row[matching_index] = formatted_row[matching_index].substring(0, 50000);
+                    }
+
+                    start_column = Math.min(start_column, matching_index);
+                    end_column = Math.max(end_column, matching_index);
                 }
             }
-        }
 
-        if (sheet && sheet.data) {
-            const headers: { [key: string]: string } = {};
+            const request_body: sheets_v4.Schema$ValueRange = {
+                values: [formatted_row],
+            };
 
-            // this assumes format is in A1:Z1 format
-            // columns past Z are not supported at the moment.
-            // this portion should eventually be revised but for now it works for our use case
-            // will be used as a lower bound comparision
-            const header_range = config.header_range.split(':');
-            const start_cell = header_range[0].toUpperCase().trim();
-            const start_cell_column_index = GOOGLE_CELL_COLUMNS[start_cell.charAt(0)];
-            const start_cell_column = GOOGLE_CELL_COLUMNS_INVERTED[start_cell_column_index];
-            const start_cell_row = parseInt(start_cell.charAt(1));
+            const target_range = this.config.sheet_name + '!' + this.config.header_range;
 
-            // extract end cell. Which will be the upper bound comparision
-            const end_cell = header_range[1].toUpperCase().trim();
-            const end_cell_column_index = GOOGLE_CELL_COLUMNS[end_cell.charAt(0)];
-            const end_cell_column = GOOGLE_CELL_COLUMNS_INVERTED[end_cell_column_index];
+            this.log('Writing to table (starting at): ' + target_range);
 
-            const end_cell_row = parseInt(end_cell.charAt(1));
-
-            // get headers first so we can validate
-            for (let i = 0; i < sheet.data.length; i++) {
-                const row = sheet.data[i];
-                if (row.rowData) {
-                    row.rowData.every((data_row, data_row_index) => {
-                        if (data_row.values) {
-                            const row_number = data_row_index + 1;
-                            data_row.values.forEach((cell_value, column_index) => {
-                                const column_letter = GOOGLE_CELL_COLUMNS_INVERTED[column_index];
-
-                                const is_in_range =
-                                    column_index >= start_cell_column_index &&
-                                    column_index <= end_cell_column_index &&
-                                    row_number >= start_cell_row &&
-                                    row_number <= end_cell_row;
-
-                                if (is_in_range) {
-                                    // find out what the cell value. Prioritizing the user entered value
-                                    // apparently accordingly to google api typescript definition this is not a
-                                    // gaurantee to be populated. So just to be safe follow up with some alternate sources
-                                    let cell_text = '';
-                                    if (cell_value.userEnteredValue && cell_value.userEnteredValue.stringValue) {
-                                        cell_text = cell_value.userEnteredValue.stringValue;
-                                    } else if (cell_value.effectiveValue && cell_value.effectiveValue.stringValue) {
-                                        cell_text = cell_value.effectiveValue.stringValue;
-                                    } else if (cell_value.formattedValue) {
-                                        cell_text = cell_value.formattedValue;
-                                    } else {
-                                        cell_text = '';
-                                    }
-
-                                    if (cell_text.trim().length > 0) {
-                                        headers[cell_text] = '';
-                                    }
-                                }
-                                // in the .every() function returning false is equivalent to using 'break' . True is equivalent to using continue;
-                                // so if we are in range, continue iterating.
-                                // if we are not in range, break out
-                                return is_in_range;
-                            });
-                        }
-                    });
-                }
+            try {
+                await this.google.spreadsheets.values.append({
+                    spreadsheetId: this.config.workbook_id,
+                    range: target_range,
+                    valueInputOption: 'RAW',
+                    requestBody: request_body,
+                });
+                return true;
+            } catch (err) {
+                console.log(err);
+                return false;
             }
         }
     }
