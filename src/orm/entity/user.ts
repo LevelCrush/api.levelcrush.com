@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index, OneToMany } from 'typeorm';
 import * as moment from 'moment';
-import Application from './application';
-import ApplicationUser from './application_user';
+
 
 @Entity()
 export class User {
