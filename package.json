@@ -12,7 +12,8 @@
         "start": "npm run build && node ./dist/app.js",
         "clean": "tsc --build --clean",
         "debug": "ts-node ./src/app.ts --dev",
-        "typeorm": "npm run build && node  --require ts-node/register ./node_modules/typeorm/cli.js"
+        "typeorm": "npm run build && node  --require ts-node/register ./node_modules/typeorm/cli.js",
+        "test:google:sheet" : "ts-node ./src/tests/google_sheet_test.ts"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.0",
@@ -37,6 +38,7 @@
         "cors": "^2.8.5",
         "express": "^4.17.2",
         "express-session": "^1.17.2",
+        "googleapis": "^105.0.0",
         "moment": "^2.29.1",
         "multer": "^1.4.4",
         "mysql2": "^2.3.3",
