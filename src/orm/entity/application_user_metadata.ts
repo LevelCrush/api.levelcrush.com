@@ -1,8 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
-import * as moment from 'moment';
-import ApplicationUser from './application_user';
-import Application from './application';
-import { application } from 'express';
 
 @Entity()
 @Index(['application', 'application_user'])
