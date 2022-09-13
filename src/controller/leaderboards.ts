@@ -52,6 +52,10 @@ export class LeaderboardController extends ServerController {
                 where: {
                     type: leaderboardType,
                 },
+                order: {
+                    sortval: 'ASC',
+                },
+                take: fetchAmount,
             });
 
             if (leaderboardEntries === undefined) {
