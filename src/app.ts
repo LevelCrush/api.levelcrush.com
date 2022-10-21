@@ -8,6 +8,7 @@ import CreatorController from './controller/creator_controller';
 import FeedController from './controller/feed_controller';
 import FormController from './controller/form_controller';
 import LeaderboardController from './controller/leaderboards';
+import LobbyController from './controller/lobby_controller';
 
 async function main(): Promise<void> {
     console.log('Starting database');
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
         new FeedController(),
         new FormController(),
         new LeaderboardController(),
+        new LobbyController(),
     ];
     controllers.forEach((controller, index) => {
         server.router(controller.route, controller.router);
